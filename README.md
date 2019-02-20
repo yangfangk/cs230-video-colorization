@@ -1,64 +1,78 @@
-# CS230-Final-Project
+# CS230 Video Colorization
+Stanford CS 230: Deep Learning (Winter 2019) Final Project
 
-### Converting videos
+### Group members
+
+Yang Fang, Vedi Chaudhri
+
+### Acknowledgements
+
+The source code for the baseline video recolorization algorithm (independent frame-by-frame image recolorization) is largely based on Gael Colas and Rafael Rafailov's [Automatic Video Colorization](https://github.com/ColasGael/Automatic-Video-Colorization) project, as well as Richard Zhang, Phillip Isola, Alexei A. Efros's [Colorful Image Colorization](https://github.com/richzhang/colorization).
+
+## Setting up an enviroment
+
+1. Create an VM instance (Google Cloud or AWS is used for this project), a GPU instance is not required for the baseline algorithm
+2. Install anaconda3 as directed [here](https://www.digitalocean.com/community/tutorials/how-to-install-anaconda-on-ubuntu-18-04-quickstart)
+3. Run:
+```
+conda install -c conda-forge opencv
+conda install -c conda-forge caffe
+```
+4. From the root directory, run:
+```
+pip install -r requirements.txt
+```
+
+## Preprocessing
+
+For this project, we will be using the MIT Moments in Time dataset, a large dataset of short, color videos of labeled categories. In this project, we will be focusing primarily on the 'hiking' subset.
+
+### Download dataset
+1. Download and unzip the dataset:
+```
+wget http://data.csail.mit.edu/soundnet/actions3/split1/Moments_in_Time_Mini.zip
+unzip Moments_in_Time_Mini.zip -d data/.
+```
+2. Pre-process the dataset:
+```
+./convert_moment_dataset.sh
+```
+
+### Preprocess videos
 
 1. Create the data directories
 ```
 mkdir data; mkdir data/raw; mkdir data/converted;
 ```
 2. Place videos inside 'data/raw' directory
-3. Run the conversion script
-
-For all videos inside 'data/raw' directory
+3. Run the conversion script:
 ```
+# For all videos inside 'data/raw' directory
 python3 converter.py
-```
 
-For one specific video 'filename'
-```
+# For one specific video 'filename'
 python3 converter.py --inputname filename
-```
 
-To convert all videos in the data/raw folder to a consistent fps and resolution:
-```
+# Convert all videos in the data/raw folder to a consistent fps and resolution
 python3 converter.py --fps 30 --out_dim 640 360
 ```
 
-#### Moments in Time (Mini) Dataset
-Download and unzip the dataset
+## Running the baseline
+1. Download the pretrained image colorization model:
+```./models/fetch_release_models.sh```
+
+2. Run the following command to colorize your video:
 ```
-wget http://data.csail.mit.edu/soundnet/actions3/split1/Moments_in_Time_Mini.zip
-unzip Moments_in_Time_Mini.zip -d data/.
-```
-Pre-process the dataset
-```
-./convert_moment_dataset.sh
+python3 baseline_colorize.py --filename <bw_filename> --input_dir ../data/hiking_processed/ --output_dir ../data/hiking_colorized 
+
+# Compute and print the average pixel-match percentage with the specified (true color) video
+python3 baseline_colorize.py --filename <bw_filename> --input_dir ../data/hiking_processed/ --output_dir ../data/hiking_colorized --true_path <color_file_path>
 ```
 
-## Running the baseline on a specific video
-Run ```./models/fetch_release_models.sh``` to download the model.
-
-Then run the following command to colorize your video :
-```
-python3 video_colorize_image_parallel.py --filename <BW_video_filename> --input_dir <path_to_input_directory> --output_dir <path_to_output_directory>
-```
-
-### Requirements
-
-### Dependencies
-
-You can install Python dependencies using `pip install -r requirements.txt`
-
-
-### Issues with CUDA
-
-When running `import tensorflow as tf`, if you encounter the following error:
-```
-ImportError: libcublas.so.9.0: cannot open shared object file: No such file or directory
-```
-
-Run the following to create links:
-```
-sudo ln -s /usr/lib/x86_64-linux-gnu/libcublas.so.9.1.85 /usr/lib/x86_64-linux-gnu/libcublas.so.9.0
-sudo ln -s /usr/lib/x86_64-linux-gnu/libcusolver.so.9.1.85 /usr/lib/x86_64-linux-gnu/libcusolver.so.9.0
-```
+### Baseline results
+Sample baseline colorization results for 5 videos (selected to encompass a variety of envrioments, such as the forest, desert, ocean, etc.) are available in the 'hiking_baseline' directory. Their associated pixel match percentages (averaged across all frames):
+1. 25.056
+2. 40.732
+3. 23.562
+4. 40.669
+5. 40.767
