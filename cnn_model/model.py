@@ -26,6 +26,7 @@ from matplotlib.pyplot import imshow
 # Define image shape
 IMAGE_SHAPE = (256, 256, 3)
 
+# TODO: add BatchNormalization layers and/or switch to MaxPooling2D layers
 """
 Creates a AlexNet Keras model with the following inputs (images preprocessed
 into (256 x 256 x 3) images and then flattened into npy arrays):
@@ -100,48 +101,6 @@ def model():
     model.summary()
 
     return model
-
-    """
-    # Passing it to a dense layer
-    model.add(Flatten())
-    # 1st Dense Layer
-    model.add(Dense(4096, input_shape=(224*224*3,)))
-    model.add(Activation('relu'))
-    # Add Dropout to prevent overfitting
-    model.add(Dropout(0.4))
-    # Batch Normalisation
-    model.add(BatchNormalization())
-
-    # 2nd Dense Layer
-    model.add(Dense(4096))
-    model.add(Activation('relu'))
-    # Add Dropout
-    model.add(Dropout(0.4))
-    # Batch Normalisation
-    model.add(BatchNormalization())
-
-    # 3rd Dense Layer
-    model.add(Dense(1000))
-    model.add(Activation('relu'))
-    # Add Dropout
-    model.add(Dropout(0.4))
-    # Batch Normalisation
-    model.add(BatchNormalization())
-
-    # Output Layer
-    model.add(Dense(17))
-    model.add(Activation('softmax'))
-        
-    model.summary()
-
-    # (4) Compile 
-    model.compile(loss='categorical_crossentropy', optimizer='adam',\
-     metrics=['accuracy'])
-
-    # (5) Train
-    model.fit(x, y, batch_size=64, epochs=1, verbose=1, \
-    validation_split=0.2, shuffle=True)
-    """
 
 if __name__ == '__main__':
     model()
