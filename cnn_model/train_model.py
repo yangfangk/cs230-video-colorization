@@ -28,21 +28,22 @@ def mean_squared_error(y_true, y_pred):
 # Builds a custom Keras loss function based on the previous frame.
 # y_true, y_pred shape: (#frames, 256, 256, 3)
 def frame_loss(y_true, y_pred):
-    num_frames = K.int_shape(y_pred)[0]
-
     # MSE between the true frame and the generated frame
     true_mse = mean_squared_error(y_true, y_pred)
 
-
-    first_pred_frame = K.slice(y_pred, start=0, size=1)
-    remaining_pred_frames = K.slice(y_pred, start=0, size=(num_frames - 1))
-
-    prev_y_pred = K.concatenate([first_pred_frame, remaining_pred_frames])
+    # Create matrix of previous frames
+    first_pred_frame = y_pred[0:1]
+    remaining_pred_frames = y_pred[1:]
+    prev_y_pred = K.concatenate([first_pred_frame, remaining_pred_frames], axis=0)
+    assert(K.int_shape(y_pred) == K.int_shape(prev_y_pred))
 
     # MSE between the current generated frame and the prev generated frame
     prev_mse = mean_squared_error(y_pred, prev_y_pred)
+    assert(K.int_shape(true_mse) == K.int_shape(prev_mse))
 
-    return FRAME_DIFF_BETA * true_mse + (1-FRAME_DIFF_BETA) * prev_mse
+    # Calculate weighted loss
+    weighted_loss = FRAME_DIFF_BETA * true_mse + (1-FRAME_DIFF_BETA) * prev_mse
+    return weighted_loss
 
 
 if __name__ == '__main__':
