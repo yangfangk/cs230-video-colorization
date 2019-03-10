@@ -1,3 +1,27 @@
+#################### Training Hyperparameters ####################
+
+# Number of epochs to train over all examples
+# Note: each training epoch generates a ~110MB model checkpoint
+NUM_TOTAL_TRAINING_EPOCHS = 20
+
+# Number of epochs to train per example
+NUM_EPOCHS_PER_EXAMPLE = 1
+
+# Batch size when training each example
+BATCH_SIZE = 16
+
+"""
+Used to weight the squared pixel differences between the generated
+frame and the true frame and the difference between the generated
+frame and the previous generated frame.
+For example, if FRAME_DIFF_BETA = 0.8, then
+lossFunc = (mse_of_pixel_diff_of_current_frame_to_true_frame * 0.8)
++ (mse_of_squared_diff_of_current_frame_to previous_frame * 0.2)
+"""
+FRAME_DIFF_BETA = 0.8
+
+##################################################################
+
 import numpy as np
 import argparse
 import os
@@ -7,21 +31,14 @@ from model import cnn_model
 import keras.backend as K
 K.set_image_data_format('channels_last')
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_dir', required=True,
     help="Directory containing the train, dev, and test .npy examples.")
+parser.add_argument('--model_save_dir', required=True,
+    help="Directory to save the checkpointed model states to.")
 
-
-"""
-Used to weight the squared pixel differences between the generated frame and
-the true frame and the difference between the generated frame and the previous
-generated frame.
-For example, if FRAME_DIFF_BETA = 0.8, then
-lossFunc = (mse_of_pixel_diff_of_current_frame_to_true_frame * 0.8) +
-(mse_of_squared_diff_of_current_frame_to previous_frame * 0.2)
-"""
-FRAME_DIFF_BETA = 0.8
-
+# MSE loss function as defined by Keras source code
 def mean_squared_error(y_true, y_pred):
     return K.mean(K.square(y_pred - y_true), axis=-1)
 
@@ -47,31 +64,47 @@ def frame_loss(y_true, y_pred):
 
 
 if __name__ == '__main__':
-    model = cnn_model()
-
-    model.compile(loss=frame_loss, optimizer='adam')
-    print('success')
-
-    """
     args = parser.parse_args()
+
+    if not os.path.exists(args.model_save_dir):
+        os.mkdir(args.model_save_dir)
+    else:
+        print("Warning: output dir {} already exists".format(args.model_save_dir))
+
+    # Create model, use model.summary() to print model architecture
+    model = cnn_model()
+    model.compile(loss=frame_loss, optimizer='adam')
+
+    # Load training examples
     train_dir = os.path.join(args.dataset_dir, 'train')
-    dev_dir = os.path.join(args.dataset_dir, 'dev')
-    test_dir = os.path.join(args.dataset_dir, 'test')
-
     train_example_files = os.listdir(train_dir)
-    train_example_files = [os.path.join(train_dir, f) for f in train_example_files if f.endswith('.npy')]
+    train_example_files = [
+        os.path.join(train_dir, f) for f in train_example_files if f.endswith('.npy')
+    ]
 
-    print (train_example_files[0], train_example_files[-1])
+    # Train model
+    for i in range(NUM_TOTAL_TRAINING_EPOCHS):
+        for train_example_file in train_example_files:
+            print(
+                "\nTraining epoch {}/{}.".format(i+1, NUM_TOTAL_TRAINING_EPOCHS),
+                "Training on \'{}\':".format(os.path.basename(train_example_file))
+            )
+            
+            train_example = np.load(train_example_file)
+            prev_c_frames, cur_c_frames, true_c_frames = train_example
 
-    for train_example_file in train_example_files:
-        train_example = np.load(train_example_file)
-        print("train_example.shape:", train_example.shape)
-
-        raise
-    """
-
-    # TODO: Compile model
-    # model.compile(loss=keras.losses.categorical_crossentropy, optimizer=’adam’, metrics=[“accuracy”])
-
-    # TODO: Train/fit model
-    # model.fit(x = X_train, y = Y_train, epochs = 20, batch_size = 16)
+            # Train model on current example
+            model.fit(
+                x=[cur_c_frames, prev_c_frames],
+                y=true_c_frames,
+                epochs=NUM_EPOCHS_PER_EXAMPLE,
+                batch_size=BATCH_SIZE
+            )
+        
+        # Save model
+        if i == (NUM_TOTAL_TRAINING_EPOCHS-1):
+            model.save(os.path.join(args.model_save_dir, "trained_model.h5"))
+        else:
+            model.save(
+                os.path.join(args.model_save_dir, "train_epoch_{}.h5".format(i))
+            )

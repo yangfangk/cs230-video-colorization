@@ -89,7 +89,5 @@ def cnn_model():
     # Create model
     model = Model(inputs=(cur_colorized_frame, prev_colorized_frame,), outputs=X)
 
-    model.summary()
-
     return model
 
