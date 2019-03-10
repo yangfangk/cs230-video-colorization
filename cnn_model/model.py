@@ -11,17 +11,8 @@ from keras.applications.imagenet_utils import preprocess_input
 from keras.utils.vis_utils import model_to_dot
 from keras.utils import plot_model
 
-# from kt_utils import *
-
 import keras.backend as K
 K.set_image_data_format('channels_last')
-
-"""
-import pydot
-from IPython.display import SVG
-import matplotlib.pyplot as plt
-from matplotlib.pyplot import imshow
-"""
 
 # Define image shape
 IMAGE_SHAPE = (256, 256, 3)
@@ -102,5 +93,3 @@ def model():
 
     return model
 
-if __name__ == '__main__':
-    model()

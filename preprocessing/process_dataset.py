@@ -2,10 +2,9 @@
 Converts and saves the processed .mp4 (colorized, true color) videos into
 files of numpy arrays.
     - Each frame is converted to a 256x256x3 numpy array
-    - Each frame example is built as an array of 
-      [prev_colorized_frame, cur_colorized_frame, cur_true_frame]
-    - Each example is created as an array of consecutive frame examples,
-      [<frame example 1>, [<frame example 2>], ...] and saved to file
+    - Each frame example is built as an array of consecutive frame arrays
+    - Each example is created as an array of 
+      [prev_colorized_frames, cur_colorized_frames, cur_true_frames]
 """
 
 import argparse
@@ -44,15 +43,18 @@ def process_and_save(filepath, true_videos_dir, output_dir):
     t_success, t_frame = true_vidcap.read()
     t_frame = t_frame[:,:,::-1] # convert BGR to RGB convention
 
-    frames = []
+    prev_c_frames = []
+    c_frames = []
+    t_frames = []
 
     # Create and save npy arrays
     while c_success:
         # Assert that colorized and true videos have the same # of frames
         assert (t_success) 
 
-        frame_example = [prev_c_frame, c_frame, t_frame]
-        frames.append(frame_example)
+        prev_c_frames.append(prev_c_frame)
+        c_frames.append(c_frame)
+        t_frames.append(t_frame)
 
         prev_c_frame = c_frame
 
@@ -68,16 +70,20 @@ def process_and_save(filepath, true_videos_dir, output_dir):
 
             t_frame = t_frame[:,:,::-1] # convert BGR to RGB convention
 
-    assert (len(frames[-1]) == 3)
-    assert (len(frames[-1][0]) == 256)
-    assert (len(frames[-1][0][0]) == 256)
-    assert (len(frames[-1][0][0][0]) == 3)
+    frames = [prev_c_frames, c_frames, t_frames]
+
+    # Output (frames) shape: (3, #frames, 256, 256, 3)
+    assert (len(frames) == 3)
+    assert (len(frames[0][-1]) == 256)
+    assert (len(frames[0][-1][0]) == 256)
+    assert (len(frames[0][-1][0][0]) == 3)
 
     # sanity check to ensure that the prev_c_frame of the last frame example
     # matches the c_frame of the second to last example
-    assert (np.sum (frames[-2][1]) == np.sum (frames[-1][0]))
+    assert (np.sum (frames[1][-2]) == np.sum (frames[0][-1]))
 
     np.save(output_dir + "/example{}.npy".format(file_id), frames)
+    
 
 if __name__ == '__main__':
     args = parser.parse_args()
