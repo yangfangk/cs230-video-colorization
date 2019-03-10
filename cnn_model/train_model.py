@@ -2,6 +2,8 @@ import numpy as np
 import argparse
 import os
 
+from model import cnn_model
+
 import keras.backend as K
 K.set_image_data_format('channels_last')
 
@@ -20,16 +22,36 @@ lossFunc = (mse_of_pixel_diff_of_current_frame_to_true_frame * 0.8) +
 """
 FRAME_DIFF_BETA = 0.8
 
+def mean_squared_error(y_true, y_pred):
+    return K.mean(K.square(y_pred - y_true), axis=-1)
+
 # Builds a custom Keras loss function based on the previous frame.
 # y_true, y_pred shape: (#frames, 256, 256, 3)
 def frame_loss(y_true, y_pred):
-    true_frame_diff = y_true - y_pred
-    prev_frame_diff = y_pred - prev_frame
+    num_frames = K.int_shape(y_pred)[0]
 
-    # TODO
+    # MSE between the true frame and the generated frame
+    true_mse = mean_squared_error(y_true, y_pred)
+
+
+    first_pred_frame = K.slice(y_pred, start=0, size=1)
+    remaining_pred_frames = K.slice(y_pred, start=0, size=(num_frames - 1))
+
+    prev_y_pred = K.concatenate([first_pred_frame, remaining_pred_frames])
+
+    # MSE between the current generated frame and the prev generated frame
+    prev_mse = mean_squared_error(y_pred, prev_y_pred)
+
+    return FRAME_DIFF_BETA * true_mse + (1-FRAME_DIFF_BETA) * prev_mse
 
 
 if __name__ == '__main__':
+    model = cnn_model()
+
+    model.compile(loss=frame_loss, optimizer='adam')
+    print('success')
+
+    """
     args = parser.parse_args()
     train_dir = os.path.join(args.dataset_dir, 'train')
     dev_dir = os.path.join(args.dataset_dir, 'dev')
@@ -45,10 +67,10 @@ if __name__ == '__main__':
         print("train_example.shape:", train_example.shape)
 
         raise
+    """
 
     # TODO: Compile model
     # model.compile(loss=keras.losses.categorical_crossentropy, optimizer=’adam’, metrics=[“accuracy”])
 
     # TODO: Train/fit model
     # model.fit(x = X_train, y = Y_train, epochs = 20, batch_size = 16)
-    

@@ -24,7 +24,7 @@ into (256 x 256 x 3) images and then flattened into npy arrays):
     1. cur_colorized_frame: current colorized frame
     2. prev_colorized_frame: previous colorized frame
 """
-def model():
+def cnn_model():
     # Define inputs
     cur_colorized_frame = Input(IMAGE_SHAPE)
     prev_colorized_frame = Input(IMAGE_SHAPE)
