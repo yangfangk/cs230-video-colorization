@@ -112,6 +112,8 @@ def colorize_video (model, i, output_dir, dev_file):
 
 
 if __name__ == '__main__':
+    model = cnn_model()
+    model.summary()
     args = parser.parse_args()
 
     # Check if should colorize a video every epoch as benchmark
