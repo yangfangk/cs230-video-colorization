@@ -17,7 +17,12 @@ K.set_image_data_format('channels_last')
 # Define image shape
 IMAGE_SHAPE = (128, 128, 3)
 
-# TODO: add BatchNormalization layers and/or switch to MaxPooling2D layers
+"""
+Crops a (m, 256, 256, 3) video by taking the center (m, 128, 128, 3) slice.
+"""
+def crop_video (video_256):
+    return video_256[:, 64:192, 64:192, :]
+
 """
 Creates a AlexNet Keras model with the following inputs (images preprocessed
 into (128 x 128 x 3) images and then flattened into npy arrays):

@@ -28,6 +28,7 @@ import os
 import cv2
 
 from model_128 import cnn_model
+from model_128 import crop_video
 
 import keras.backend as K
 K.set_image_data_format('channels_last')
@@ -39,9 +40,9 @@ parser.add_argument('--dataset_dir', required=True,
 parser.add_argument('--model_save_dir', required=True,
     help="Directory to save the checkpointed model states to.")
 
-parser.add_argument('--dev_file', required=True,
+parser.add_argument('--dev_file', default=None,
     help="Path to a .npy example file to use as colorization benchmark during training.")
-parser.add_argument('--dev_output_dir', required=True,
+parser.add_argument('--dev_output_dir', default=None,
     help="Directory to output video colorizations of dev file to.")
 
 # MSE loss function as defined by Keras source code
@@ -51,8 +52,10 @@ def mean_squared_error(y_true, y_pred):
 # Builds a custom Keras loss function based on the previous frame.
 # y_true, y_pred shape: (#frames, 256, 256, 3)
 def frame_loss(y_true, y_pred):
-    y_true = y_true[:, 64:192, 64:192,:]
-    y_pred = y_pred[:, 64:192, 64:192,:]
+    # Take the center 128x128x3 crop per frame.
+    y_true = crop_video(y_true)
+    y_pred = crop_video(y_pred)
+
     # MSE between the true frame and the generated frame
     true_mse = mean_squared_error(y_true, y_pred)
 
@@ -70,19 +73,24 @@ def frame_loss(y_true, y_pred):
     weighted_loss = FRAME_DIFF_BETA * true_mse + (1-FRAME_DIFF_BETA) * prev_mse
     return weighted_loss
 
-def colorize_video (model, i, j, output_dir, dev_file):
+def colorize_video (model, i, output_dir, dev_file):
     example = np.load(dev_file)
     prev_c_frames, cur_c_frames, true_c_frames = example
+    
+    # Take the center 128x128x3 crop per frame.
+    prev_c_frames = crop_video(prev_c_frames)
+    cur_c_frames = crop_video(cur_c_frames)
+    true_c_frames = crop_video(true_c_frames)
 
     pred_frames = model.predict(x=[cur_c_frames, prev_c_frames]).astype(np.uint8)
-    print ('pred_frame sum:', np.sum(pred_frames))
+    print ('Epoch{} pred_frame sum:'.format(i), np.sum(pred_frames))
     
     # TODO: use true_c_frames for evaluation if desired
     fourcc = cv2.VideoWriter_fourcc(*'mp4v');
     fps = 30.0
     new_width, new_height = 256, 256
 
-    output_path = os.path.join(output_dir, 'dev_ep{}_ex{}.mp4'.format(i, j))
+    output_path = os.path.join(output_dir, 'dev_epoch{}.mp4'.format(i))
     #print ('output_path:', output_path)
 
     # Recolorized output video
@@ -104,20 +112,26 @@ def colorize_video (model, i, j, output_dir, dev_file):
 
 
 if __name__ == '__main__':
-    model = cnn_model()
-    model.summary()
-
     args = parser.parse_args()
 
+    # Check if should colorize a video every epoch as benchmark
+    if args.dev_file is None or args.dev_output_dir is None:
+        colorize_benchmark = False
+    else:
+        colorize_benchmark = True
+
+    # Check if model save dir exists
     if not os.path.exists(args.model_save_dir):
         os.mkdir(args.model_save_dir)
     else:
         print("Warning: output dir {} already exists".format(args.model_save_dir))
 
-    if not os.path.exists(args.dev_output_dir):
-        os.mkdir(args.dev_output_dir)
-    else:
-        print("Warning: output dir {} already exists".format(args.dev_output_dir))
+    # Check if dev output dir exists
+    if colorize_benchmark:
+        if not os.path.exists(args.dev_output_dir):
+            os.mkdir(args.dev_output_dir)
+        else:
+            print("Warning: output dir {} already exists".format(args.dev_output_dir))
 
     # Create model, use model.summary() to print model architecture
     model = cnn_model()
@@ -132,7 +146,6 @@ if __name__ == '__main__':
 
     # Train model
     for i in range(NUM_TOTAL_TRAINING_EPOCHS):
-        j = 0
         for train_example_file in train_example_files:
             print(
                 "\nTraining epoch {}/{}.".format(i+1, NUM_TOTAL_TRAINING_EPOCHS),
@@ -142,6 +155,11 @@ if __name__ == '__main__':
             train_example = np.load(train_example_file)
             prev_c_frames, cur_c_frames, true_c_frames = train_example
 
+            # Take the center 128x128x3 crop per frame.
+            prev_c_frames = crop_video(prev_c_frames)
+            cur_c_frames = crop_video(cur_c_frames)
+            true_c_frames = crop_video(true_c_frames)
+
             # Train model on current example
             model.fit(
                 x=[cur_c_frames, prev_c_frames],
@@ -150,8 +168,8 @@ if __name__ == '__main__':
                 batch_size=BATCH_SIZE
             )
         
-        colorize_video (model, i, j, args.dev_output_dir, args.dev_file)
-        j += 1
+        if colorize_benchmark:
+            colorize_video (model, i, args.dev_output_dir, args.dev_file)
 
         # Save model
         if i == (NUM_TOTAL_TRAINING_EPOCHS-1):
