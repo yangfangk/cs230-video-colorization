@@ -35,36 +35,43 @@ def cnn_model():
     X = Conv2D(filters=96, kernel_size=(11,11), strides=(4,4), padding='valid') (X)
     X = Activation('relu') (X)
     X = AveragePooling2D(pool_size=(3,3), strides=(2,2), padding='valid') (X)
+    X = BatchNormalization()(X)
 
     # 2nd Convolutional Layer
     X = Conv2D(filters=256, kernel_size=(5,5), strides=(1,1), padding='same') (X)
     X = Activation('relu') (X)
     X = AveragePooling2D(pool_size=(3,3), strides=(2,2), padding='valid') (X)
+    X = BatchNormalization()(X)
 
     # 3rd Convolutional Layer
     X = Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='same') (X)
     X = Activation('relu') (X)
+    X = BatchNormalization()(X)
 
     # 4th Convolutional Layer
     X = Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='same') (X)
     X = Activation('relu') (X)
+    X = BatchNormalization()(X)
 
     # 5th Convolutional Layer
     X = Conv2D(filters=256, kernel_size=(3,3), strides=(1,1), padding='same') (X)
     X = Activation('relu') (X)
     X = AveragePooling2D(pool_size=(3,3), strides=(2,2), padding='valid') (X)
-
+    X = BatchNormalization()(X)
+    
     # Upsample to output size.
 
     # 1st Upsample Layer
     X = Conv2D(filters=256, kernel_size=(1,1), strides=(1,1), padding='valid') (X)
     X = Activation('relu') (X)
     X = UpSampling2D(size=(2, 2)) (X)
-
+    X = BatchNormalization()(X)
+    
     # 2nd Upsample Layer
     X = Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='valid') (X)
     X = Activation('relu') (X)
     X = UpSampling2D(size=(2, 2)) (X)
+    X = BatchNormalization()(X)
     
     # 3rd Upsample Layer
     X = Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding='valid') (X)
@@ -75,11 +82,13 @@ def cnn_model():
     X = Conv2D(filters=256, kernel_size=(5,5), strides=(1,1), padding='valid') (X)
     X = Activation('relu') (X)
     X = UpSampling2D(size=(2, 2)) (X)
+    X = BatchNormalization()(X)
 
     # 5th Upsample Layer
     X = Conv2D(filters=96, kernel_size=(5,5), strides=(1,1), padding='same') (X)
     X = Activation('relu') (X)
     X = UpSampling2D(size=(2, 2)) (X)
+    X = BatchNormalization()(X)
 
     # 6th Upsample Layer
     X = Conv2D(filters=3, kernel_size=(5,5), strides=(1,1), padding='same') (X)

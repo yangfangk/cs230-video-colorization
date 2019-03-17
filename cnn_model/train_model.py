@@ -25,6 +25,7 @@ FRAME_DIFF_BETA = 0.8
 import numpy as np
 import argparse
 import os
+import cv2
 
 from model import cnn_model
 
@@ -38,6 +39,11 @@ parser.add_argument('--dataset_dir', required=True,
 parser.add_argument('--model_save_dir', required=True,
     help="Directory to save the checkpointed model states to.")
 
+parser.add_argument('--dev_file', required=True,
+    help="Path to a .npy example file to use as colorization benchmark during training.")
+parser.add_argument('--dev_output_dir', required=True,
+    help="Directory to output video colorizations of dev file to.")
+
 # MSE loss function as defined by Keras source code
 def mean_squared_error(y_true, y_pred):
     return K.mean(K.square(y_pred - y_true), axis=-1)
@@ -45,12 +51,14 @@ def mean_squared_error(y_true, y_pred):
 # Builds a custom Keras loss function based on the previous frame.
 # y_true, y_pred shape: (#frames, 256, 256, 3)
 def frame_loss(y_true, y_pred):
+    y_true = y_true[:, 64:192, 64:192,:]
+    y_pred = y_pred[:, 64:192, 64:192,:]
     # MSE between the true frame and the generated frame
     true_mse = mean_squared_error(y_true, y_pred)
 
     # Create matrix of previous frames
     first_pred_frame = y_pred[0:1]
-    remaining_pred_frames = y_pred[1:]
+    remaining_pred_frames = y_pred[:-1]
     prev_y_pred = K.concatenate([first_pred_frame, remaining_pred_frames], axis=0)
     assert(K.int_shape(y_pred) == K.int_shape(prev_y_pred))
 
@@ -62,6 +70,38 @@ def frame_loss(y_true, y_pred):
     weighted_loss = FRAME_DIFF_BETA * true_mse + (1-FRAME_DIFF_BETA) * prev_mse
     return weighted_loss
 
+def colorize_video (model, i, j, output_dir, dev_file):
+    example = np.load(dev_file)
+    prev_c_frames, cur_c_frames, true_c_frames = example
+
+    pred_frames = model.predict(x=[cur_c_frames, prev_c_frames]).astype(np.uint8)
+    print ('pred_frame sum:', np.sum(pred_frames))
+    
+    # TODO: use true_c_frames for evaluation if desired
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v');
+    fps = 30.0
+    new_width, new_height = 256, 256
+
+    output_path = os.path.join(output_dir, 'dev_ep{}_ex{}.mp4'.format(i, j))
+    #print ('output_path:', output_path)
+
+    # Recolorized output video
+    color_out = cv2.VideoWriter(
+        output_path,
+        fourcc,
+        fps,
+        (new_width, new_height),
+        isColor=True
+    )
+
+    for frame in pred_frames:
+        # convert RGB to BGR convention
+        frame = frame[:,:,::-1]
+
+        color_out.write(frame)
+
+    color_out.release()
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -70,6 +110,11 @@ if __name__ == '__main__':
         os.mkdir(args.model_save_dir)
     else:
         print("Warning: output dir {} already exists".format(args.model_save_dir))
+
+    if not os.path.exists(args.dev_output_dir):
+        os.mkdir(args.dev_output_dir)
+    else:
+        print("Warning: output dir {} already exists".format(args.dev_output_dir))
 
     # Create model, use model.summary() to print model architecture
     model = cnn_model()
@@ -84,6 +129,7 @@ if __name__ == '__main__':
 
     # Train model
     for i in range(NUM_TOTAL_TRAINING_EPOCHS):
+        j = 0
         for train_example_file in train_example_files:
             print(
                 "\nTraining epoch {}/{}.".format(i+1, NUM_TOTAL_TRAINING_EPOCHS),
@@ -101,6 +147,9 @@ if __name__ == '__main__':
                 batch_size=BATCH_SIZE
             )
         
+        colorize_video (model, i, j, args.dev_output_dir, args.dev_file)
+        j += 1
+
         # Save model
         if i == (NUM_TOTAL_TRAINING_EPOCHS-1):
             model.save(os.path.join(args.model_save_dir, "trained_model.h5"))
