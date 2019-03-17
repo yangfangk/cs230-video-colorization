@@ -27,7 +27,7 @@ import argparse
 import os
 import cv2
 
-from model import cnn_model
+from model_128 import cnn_model
 
 import keras.backend as K
 K.set_image_data_format('channels_last')
@@ -104,6 +104,9 @@ def colorize_video (model, i, j, output_dir, dev_file):
 
 
 if __name__ == '__main__':
+    model = cnn_model()
+    model.summary()
+
     args = parser.parse_args()
 
     if not os.path.exists(args.model_save_dir):
