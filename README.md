@@ -104,3 +104,20 @@ python3 process_dataset.py --colorized_videos_dir <colorized_videos_dir> --true_
 ```
 python3 train_model.py --dataset_dir <dataset_dir> --model_save_dir <model_save_dir>
 ```
+
+## Testing / Colorizing Inputs
+
+1. Preprocess input videos as directed in the "Preprocess videos" section.
+
+2. Colorize the processed videos using the baseline colorization algorithm as directed in the "Running the baseline" section.
+
+3. Build a dataset from the colorized videos as directed in "Build the dataset" in the "Training a model" section. Note that the true color videos can simply be a copy of the colorized video (the colorization script doesn't examine the true color video).
+
+4. Colorize the generated .npy examples:
+```
+# Colorize and generate a 256 x 256 video
+python3 video_colorize.py --input_dir <path to input dir> --model <path to model file> --output_dir <path to output dir>
+
+# Colorize and generate a 128 x 128 video
+python3 video_colorize_128.py --input_dir <path to input dir> --model <path to model file> --output_dir <path to output dir>
+```
