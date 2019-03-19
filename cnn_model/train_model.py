@@ -27,7 +27,7 @@ import argparse
 import os
 import cv2
 
-from model_128 import cnn_model
+from model_128 import vgg_model
 from model_128 import crop_video
 
 import keras.backend as K
@@ -112,8 +112,6 @@ def colorize_video (model, i, output_dir, dev_file):
 
 
 if __name__ == '__main__':
-    model = cnn_model()
-    model.summary()
     args = parser.parse_args()
 
     # Check if should colorize a video every epoch as benchmark
@@ -136,7 +134,7 @@ if __name__ == '__main__':
             print("Warning: output dir {} already exists".format(args.dev_output_dir))
 
     # Create model, use model.summary() to print model architecture
-    model = cnn_model()
+    model = vgg_model()
     model.compile(loss=frame_loss, optimizer='adam')
 
     # Load training examples
