@@ -88,7 +88,7 @@ def colorize_video (model, i, output_dir, dev_file):
     # TODO: use true_c_frames for evaluation if desired
     fourcc = cv2.VideoWriter_fourcc(*'mp4v');
     fps = 30.0
-    new_width, new_height = 256, 256
+    new_width, new_height = 128, 128
 
     output_path = os.path.join(output_dir, 'dev_epoch{}.mp4'.format(i))
     #print ('output_path:', output_path)
