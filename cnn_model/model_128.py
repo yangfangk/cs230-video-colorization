@@ -109,8 +109,9 @@ def cnn_model():
     return model
 
 def vgg_model ():
-    #Load the VGG model
+    # Load the VGG model
     vgg_conv = VGG16(weights='imagenet', include_top=False, input_shape=IMAGE_SHAPE)
+    
     # Freeze the layers except the last 4 layers
     for layer in vgg_conv.layers[:]:
         layer.trainable = False
